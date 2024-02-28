@@ -8,7 +8,7 @@ contract MetaERC20 is IMetaERC20 {
 
     string public s_tokenName;
     string public s_tokenSymbol;
-    uint256 public constant MAX_SUPPLY = 30000000000000000000000000;
+    uint256 public constant MAX_SUPPLY = 1000000;
 
     uint256 public s_totalSupply;
     address public s_owner;
@@ -20,20 +20,19 @@ contract MetaERC20 is IMetaERC20 {
         string memory _tokenName,
         string memory _tokenSymbol,
         uint8 decimal
-        ) {
-            s_tokenName = _tokenName;
-            s_tokenSymbol = _tokenSymbol;
-            s_tokenDecimal = decimal;
-            s_tokenDecimal = 18;
-            s_owner = tx.origin;
+    ) {
+        s_tokenName = _tokenName;
+        s_tokenSymbol = _tokenSymbol;
+        s_tokenDecimal = decimal;
+        s_owner = msg.sender;
     }
 
     modifier onlyOwner() {
-        require(msg.sender == s_owner, "Only owner");
+        require(msg.sender == s_owner, "ONLY_OWNER");
         _;
     }
 
-     function mint(address _account, uint256 _amount) public onlyOwner{
+    function mint(address _account, uint256 _amount) public onlyOwner {
         if (_amount <= 0) revert("CANNOT_MINT_ZERO_VALUE");
         uint256 tempSupply = s_totalSupply + _amount;
         if (tempSupply > MAX_SUPPLY) revert("MAXIMUM_TOKEN_SUPPLY_REACHED");
@@ -51,8 +50,13 @@ contract MetaERC20 is IMetaERC20 {
         if (_to == address(0) || msg.sender == address(0)) revert("ZERO_ADDRESS_NOT_ALLOWED");
         if (s_totalSupply < balances[msg.sender]) revert("BALANCE_MORE_THAN_TOTAL_SUPPLY");
 
-        balances[msg.sender] = balances[msg.sender] - _value;
+        uint256 initBal = balances[msg.sender];
+        if (initBal < _value) revert("INSUFFICIENT BALANCE");
+
+        balances[msg.sender] = initBal - _value;
         balances[_to] = balances[_to] + _value;
+
+        assert(balances[msg.sender] == (initBal - _value));
 
         emit Transfer(msg.sender, _to, _value);
         return true;
@@ -61,6 +65,7 @@ contract MetaERC20 is IMetaERC20 {
     function burn(uint96 _amount) external {
         if (msg.sender == address(0)) revert("ZERO_ADDRESS_NOT_ALLOWED");
         if (balances[msg.sender] <= 0) revert("CANNOT_BURN_ZERO_TOKEN");
+        if (balances[msg.sender] < _amount) revert("YOU CANNOT BURN WHAT YOU DO NOT HAVE");
 
         balances[msg.sender] = balances[msg.sender] - _amount;
         s_totalSupply = s_totalSupply - _amount;

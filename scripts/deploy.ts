@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 
 async function main() {
 
-  const MetaERC20 = await ethers.deployContract("MetaERC20");
+  const MetaERC20 = await ethers.deployContract("MetaERC20", ["MetaERC20", "M20", 18]);
 
   await MetaERC20.waitForDeployment();
 
